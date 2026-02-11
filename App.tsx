@@ -123,8 +123,8 @@ const App: React.FC = () => {
       if (!API_KEY) throw new Error("API Key 未配置，请在 Vercel 环境变量中设置 VITE_GEMINI_API_KEY");
 
       const genAI = new GoogleGenerativeAI(API_KEY);
-      // 使用最新的 gemini-2.0-flash 模型
-      const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+      // 使用最新的 gemini-3.0-flash 模型
+      const model = genAI.getGenerativeModel({ model: "gemini-3.0-flash" });
 
       const prompt = `你是一位精通意识法则的大师。请针对用户的困扰进行频率校准，并严格返回 JSON 格式。
       困扰内容："${input}"
