@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import StarBackground from './components/StarBackground';
-// 直接引入 Google AI SDK
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-// --- 1. 类型定义 (内嵌，防止文件丢失报错) ---
+// --- 类型定义 ---
 export interface CalibrationResult {
   frequencyScan: string;
   illusionStripping: string;
@@ -20,7 +19,7 @@ export interface HistoryItem {
   result: CalibrationResult;
 }
 
-// --- 2. 静态数据 ---
+// --- 静态数据 ---
 const PRESET_CONCERNS = [
   "金钱似乎总是指间沙，无论如何努力都填不满内心深处的匮乏深渊...",
   "在职场表演中耗尽了最后一丝生命力，却依然对未知的评价感到深深恐惧...",
@@ -66,8 +65,6 @@ const App: React.FC = () => {
   const bgmRef = useRef<HTMLAudioElement>(null);
   const [depotPlayingTitle, setDepotPlayingTitle] = useState<string | null>(null);
   const depotAudioRef = useRef<HTMLAudioElement>(null);
-
-  // Background BGM URL
   const BGM_URL = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-15.mp3";
 
   // Typewriter effect
@@ -84,7 +81,7 @@ const App: React.FC = () => {
           await bgmRef.current.play();
         } catch (e) {
           console.warn("Autoplay prevented by browser, waiting for interaction");
-          setIsBgmPlaying(false); // 重置状态，等待用户点击
+          setIsBgmPlaying(false);
         }
       } else if (bgmRef.current) {
         bgmRef.current.pause();
@@ -115,14 +112,14 @@ const App: React.FC = () => {
     return () => clearTimeout(timeout);
   }, [charIndex, isDeleting, currentConcernIndex, result, loading]);
 
-  // --- 核心 API 调用 (集成修复版) ---
+  // --- 核心 API 调用 ---
   const handleCalibrate = async () => {
     if (!input.trim()) return;
     setLoading(true);
     setError(null);
     setResult(null);
 
-    // 尝试播放音乐 (如果之前未播放)
+    // 尝试播放音乐
     if (!isBgmPlaying && !depotPlayingTitle) {
       setIsBgmPlaying(true);
     }
@@ -133,12 +130,12 @@ const App: React.FC = () => {
       if (!API_KEY) throw new Error("API Key 未配置，请检查 Vercel 环境变量 VITE_GEMINI_API_KEY");
 
       const genAI = new GoogleGenerativeAI(API_KEY);
-      // 使用 gemini-pro 以避免 404 错误
+      // 使用 gemini-pro 以避免 404
       const model = genAI.getGenerativeModel({ 
         model: "gemini-pro", 
         systemInstruction: {
           role: "system",
-          parts: [{text: "你是一位精通意识法则的大师。请根据用户烦恼严格返回纯 JSON 格式数据，不要包含 Markdown 标记（如 ```json）。JSON 需包含以下字段：frequencyScan (字符串), illusionStripping (字符串), fiveSteps (字符串数组), actionAnchor (字符串), recommendedBookTitle (字符串，从已知灵性书籍中推荐), recommendedMusicTitle (字符串)。"}]
+          parts: [{text: "你是一位精通意识法则的大师。请根据用户烦恼严格返回纯 JSON 格式数据，不要包含 Markdown 标记。JSON 需包含以下字段：frequencyScan (字符串), illusionStripping (字符串), fiveSteps (字符串数组), actionAnchor (字符串), recommendedBookTitle (字符串，从已知灵性书籍中推荐), recommendedMusicTitle (字符串)。"}]
         }
       });
 
@@ -146,7 +143,6 @@ const App: React.FC = () => {
       const response = await model.generateContent(prompt);
       
       const text = response.response.text();
-      // 清理可能存在的 markdown 标记
       const cleanText = text.replace(/```json|```/g, '').trim();
       const data = JSON.parse(cleanText) as CalibrationResult;
 
@@ -155,8 +151,7 @@ const App: React.FC = () => {
       setInput('');
     } catch (err: any) {
       console.error("Calibration interaction error:", err);
-      // 友好的错误提示
-      if (err.message.includes("404")) {
+      if (err.message && err.message.includes("404")) {
          setError("量子通道繁忙 (模型未找到)，请稍后再试。");
       } else {
          setError(err.message || "连接量子核心失败。请检查 API Key 配置。");
@@ -189,7 +184,7 @@ const App: React.FC = () => {
       <audio ref={bgmRef} src={BGM_URL} loop />
       <audio ref={depotAudioRef} onEnded={() => setDepotPlayingTitle(null)} />
 
-      {/* 音乐控制按钮 (SVG 图标替换 FontAwesome) */}
+      {/* 音乐控制按钮 */}
       <button 
         onClick={() => {
           setIsBgmPlaying(!isBgmPlaying);
@@ -203,13 +198,11 @@ const App: React.FC = () => {
       >
         <div className="text-cyan-400 w-6 h-6">
           {isBgmPlaying ? (
-            /* Volume Up SVG */
-            <svg xmlns="[http://www.w3.org/2000/svg](http://www.w3.org/2000/svg)" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="animate-pulse">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="animate-pulse">
               <path strokeLinecap="round" strokeLinejoin="round" d="M19.114 5.636a9 9 0 0 1 0 12.728M16.463 8.288a5.25 5.25 0 0 1 0 7.424M6.75 8.25l4.72-4.72a.75.75 0 0 1 1.28.53v15.88a.75.75 0 0 1-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.009 9.009 0 0 1 2.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75Z" />
             </svg>
           ) : (
-            /* Mute SVG */
-            <svg xmlns="[http://www.w3.org/2000/svg](http://www.w3.org/2000/svg)" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 9.75 19.5 12m0 0 2.25 2.25M19.5 12l2.25-2.25M19.5 12l-2.25 2.25m-10.5-6 4.72-4.72a.75.75 0 0 1 1.28.53v15.88a.75.75 0 0 1-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.009 9.009 0 0 1 2.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75Z" />
             </svg>
           )}
@@ -266,8 +259,7 @@ const App: React.FC = () => {
                     <div className="absolute inset-0 border-[3px] border-cyan-500/20 rounded-full"></div>
                     <div className="absolute inset-0 border-[3px] border-t-white rounded-full animate-spin"></div>
                     <div className="absolute inset-0 flex items-center justify-center text-cyan-400 text-3xl md:text-4xl">
-                      {/* Atom SVG */}
-                      <svg xmlns="[http://www.w3.org/2000/svg](http://www.w3.org/2000/svg)" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-10 h-10 animate-spin-slow">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-10 h-10 animate-spin-slow">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
                         <path strokeLinecap="round" strokeLinejoin="round" d="M15.91 11.672a.375.375 0 0 1 0 .656l-5.603 3.113a.375.375 0 0 1-.557-.328V8.887c0-.286.307-.466.557-.327l5.603 3.112Z" />
                       </svg>
@@ -311,15 +303,13 @@ const App: React.FC = () => {
                     <p className="text-lg md:text-xl text-white font-light italic leading-relaxed">{result.actionAnchor}</p>
                   </section>
 
-                  {/* 量子补给站 - Matched only */}
                   <section className="mt-12 md:mt-16 pt-10 md:pt-12 border-t border-white/10 space-y-8 md:space-y-10">
                     <h3 className="text-white/30 text-[9px] md:text-[10px] font-bold tracking-[0.4em] md:tracking-[0.5em] uppercase text-center">QUANTUM DEPOT 量子补给站</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       {matchedBook && (
                         <div className="space-y-4">
                           <div className="flex items-center space-x-3 mb-1 ml-4">
-                            {/* Book SVG */}
-                            <svg xmlns="[http://www.w3.org/2000/svg](http://www.w3.org/2000/svg)" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-pink-400/60">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-pink-400/60">
                               <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" />
                             </svg>
                             <h4 className="text-[9px] md:text-[10px] font-bold text-pink-300 tracking-[0.2em] uppercase">意识指引</h4>
@@ -334,8 +324,7 @@ const App: React.FC = () => {
                       {matchedMusic && (
                         <div className="space-y-4">
                           <div className="flex items-center space-x-3 mb-1 ml-4">
-                            {/* Music Wave SVG */}
-                            <svg xmlns="[http://www.w3.org/2000/svg](http://www.w3.org/2000/svg)" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-cyan-400/60">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-cyan-400/60">
                               <path strokeLinecap="round" strokeLinejoin="round" d="M9 9l10.5-3m0 6.553v3.75a2.25 2.25 0 0 1-1.632 2.163l-1.32.377a1.803 1.803 0 1 1-.99-3.593L16 17V9m0 0 2.25-2.25M12 12a2.25 2.25 0 0 1-1.632 2.163l-1.32.377a1.803 1.803 0 1 1-.99-3.593L9 12v-3" />
                             </svg>
                             <h4 className="text-[9px] md:text-[10px] font-bold text-cyan-300 tracking-[0.2em] uppercase">频率共鸣</h4>
@@ -350,11 +339,11 @@ const App: React.FC = () => {
                             </div>
                             <div className="text-cyan-400 text-2xl">
                               {depotPlayingTitle === matchedMusic.title ? (
-                                <svg xmlns="[http://www.w3.org/2000/svg](http://www.w3.org/2000/svg)" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8 animate-pulse">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8 animate-pulse">
                                   <path strokeLinecap="round" strokeLinejoin="round" d="M14.25 9v6m-4.5 0V9M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
                                 </svg>
                               ) : (
-                                <svg xmlns="[http://www.w3.org/2000/svg](http://www.w3.org/2000/svg)" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8 opacity-40 group-hover:opacity-100">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8 opacity-40 group-hover:opacity-100">
                                   <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
                                   <path strokeLinecap="round" strokeLinejoin="round" d="M15.91 11.672a.375.375 0 0 1 0 .656l-5.603 3.113a.375.375 0 0 1-.557-.328V8.887c0-.286.307-.466.557-.327l5.603 3.112Z" />
                                 </svg>
@@ -389,4 +378,56 @@ const App: React.FC = () => {
                   {history.map((item) => (
                     <button
                       key={item.id}
-                      onClick={() => setResult(
+                      onClick={() => setResult(item.result)}
+                      className="group flex-shrink-0 w-36 md:w-44 p-4 md:p-6 bg-white/[0.02] backdrop-blur-3xl rounded-[1.2rem] md:rounded-[1.5rem] border border-white/10 text-left hover:border-cyan-400/40 transition-all hover:-translate-y-2 shadow-2xl"
+                    >
+                      <div className="flex justify-between items-center mb-3">
+                        <span className="text-[8px] text-white/30 font-bold tracking-tighter uppercase">#{item.id.slice(-4)}</span>
+                      </div>
+                      <p className="text-[10px] text-white/40 truncate group-hover:text-white transition-colors leading-relaxed font-light italic">"{item.input}"</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </main>
+        </div>
+      </div>
+
+      <footer className="w-full py-10 md:py-12 text-[8px] md:text-[10px] text-white/10 tracking-[1em] md:tracking-[1.5em] font-medium uppercase text-center shrink-0">
+        © Mirror Logic • Engineered for Consciousness
+      </footer>
+
+      <style dangerouslySetInnerHTML={{ __html: `
+        @keyframes spin-slow {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        .animate-spin-slow {
+          animation: spin-slow 15s linear infinite;
+        }
+        @keyframes shake {
+          10%, 90% { transform: translate3d(-1px, 0, 0); }
+          20%, 80% { transform: translate3d(2px, 0, 0); }
+          30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+          40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
+        .animate-shake {
+          animation: shake 0.6s cubic-bezier(.36,.07,.19,.97) both;
+        }
+        .no-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+        .no-scrollbar {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+        textarea::placeholder {
+          transition: opacity 0.5s ease;
+        }
+      `}} />
+    </div>
+  );
+};
+
+export default App;
