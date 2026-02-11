@@ -12,30 +12,14 @@ export interface CalibrationResult {
   recommendedMusicTitle: string;
 }
 
-export interface HistoryItem {
-  id: string;
-  timestamp: number;
-  input: string;
-  result: CalibrationResult;
-}
-
-// --- 2. 静态数据 ---
-const PRESET_CONCERNS = [
-  "金钱似乎总是指间沙，无论如何努力都填不满内心深处的匮乏深渊...",
-  "在职场表演中耗尽了最后一丝生命力，却依然对未知的评价感到深深恐惧...",
-  "试图在亲密关系中寻找救赎，却发现只是在对方的镜子里重复旧有的伤痛...",
-  "当生活变成了一场无止境的追逐，我开始怀疑这一切繁荣背后的终极意义...",
-  "无法停止对未来可能发生的‘最坏情况’进行灾难化预演，灵魂无法安放...",
-  "感觉自己被囚禁在社会的矩阵剧本里，渴望收回主权却找不到出口..."
-];
-
+// --- 2. 静态数据（确保模型只能从这里选） ---
 const BOOKS_DATA = [
-  { title: "《你值得过更好的生活》", author: "罗伯特·谢费尔德", desc: "核心架构：拆解全息幻象" },
-  { title: "《金钱的灵魂》", author: "林恩·特威斯特", desc: "重新定义丰盛与金钱的关系" },
+  { title: "《你值得过更好的生活》", author: "罗伯特·谢费尔德", desc: "拆解全息幻象的进阶指南" },
+  { title: "《金钱的灵魂》", author: "林恩·特威斯特", desc: "重新定义丰盛与流动的本质" },
   { title: "《当下的力量》", author: "埃克哈特·托利", desc: "进入意识现场的必经之路" },
-  { title: "《瓦解控制》", author: "克拉克·斯特兰德", desc: "放弃小我控制，回归源头" },
+  { title: "《瓦解控制》", author: "克拉克·斯特兰德", desc: "放弃小我控制，回归自然源头" },
   { title: "《信念的力量》", author: "布鲁斯·利普顿", desc: "量子生物学视角下的意识改写" },
-  { title: "《零极限》", author: "修·蓝博士", desc: "清理潜意识记忆的实操指南" },
+  { title: "《零极限》", author: "修·蓝博士", desc: "清理潜意识记忆的实操手册" },
   { title: "《终极自由之路》", author: "莱斯特·利文森", desc: "关于释放与收回力量的终极教导" },
   { title: "《显化的真义》", author: "尼维尔·高达德", desc: "意识即实相的古典量子观" }
 ];
@@ -48,8 +32,14 @@ const MUSIC_DATA = [
   { title: "Healing Resonance 432Hz", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3", type: "细胞修复" },
   { title: "Higher Self Connection", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3", type: "意识链接" },
   { title: "Pineal Gland Activation", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-7.mp3", type: "觉知开启" },
-  { title: "Universal Harmony", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3", type: "万物共振" },
-  { title: "Soul Blueprint Alignment", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-10.mp3", type: "灵魂重塑" }
+  { title: "Universal Harmony", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3", type: "万物共振" }
+];
+
+const PRESET_CONCERNS = [
+  "金钱似乎总是指间沙，无论如何努力都填不满内心深处的匮乏深渊...",
+  "在职场表演中耗尽了最后一丝生命力，却依然对未知的评价感到深深恐惧...",
+  "试图在亲密关系中寻找救赎，却发现只是在对方的镜子里重复旧有的伤痛...",
+  "感觉自己被囚禁在社会的矩阵剧本里，渴望收回主权却找不到出口..."
 ];
 
 const App: React.FC = () => {
@@ -57,24 +47,25 @@ const App: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<CalibrationResult | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [history, setHistory] = useState<HistoryItem[]>([]);
   
+  // 音乐与弹窗控制
   const [isBgmPlaying, setIsBgmPlaying] = useState(false);
-  const bgmRef = useRef<HTMLAudioElement>(null);
+  const [isDepotOpen, setIsDepotOpen] = useState(false);
   const [depotPlayingTitle, setDepotPlayingTitle] = useState<string | null>(null);
+  
+  const bgmRef = useRef<HTMLAudioElement>(null);
   const depotAudioRef = useRef<HTMLAudioElement>(null);
   const BGM_URL = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-15.mp3";
 
+  // 打字机占位符逻辑
   const [displayedPlaceholder, setDisplayedPlaceholder] = useState("");
   const [currentConcernIndex, setCurrentConcernIndex] = useState(0);
   const [charIndex, setCharIndex] = useState(0);
   const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
-    if (bgmRef.current && isBgmPlaying) {
-      bgmRef.current.play().catch(() => setIsBgmPlaying(false));
-    } else if (bgmRef.current) {
-      bgmRef.current.pause();
+    if (bgmRef.current) {
+      isBgmPlaying ? bgmRef.current.play().catch(() => setIsBgmPlaying(false)) : bgmRef.current.pause();
     }
   }, [isBgmPlaying]);
 
@@ -108,21 +99,23 @@ const App: React.FC = () => {
     const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 
     try {
-      if (!API_KEY) throw new Error("API Key 未找到，请检查 Vercel 环境变量。");
-
       const genAI = new GoogleGenerativeAI(API_KEY);
-      // 使用你配额表里明确拥有的 2.5 flash 模型
       const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
-      const prompt = `你是一位精通意识法则的大师。请针对用户的困扰进行频率校准，并返回纯 JSON 格式：
-      困扰内容："${input}"
+      const prompt = `你是一位精通意识法则的大师。请针对用户的困扰进行频率校准。
+      用户困扰："${input}"
+      
+      请必须从以下列表中选出一本书名（严格匹配）：${BOOKS_DATA.map(b => b.title).join(',')}
+      请必须从以下列表中选出一个音乐名（严格匹配）：${MUSIC_DATA.map(m => m.title).join(',')}
+
+      返回 JSON：
       {
-        "frequencyScan": "当前频率深度洞察",
-        "illusionStripping": "该困扰背后的全息幻象本质",
+        "frequencyScan": "对用户当前振动频率的解析",
+        "illusionStripping": "剥离这件事表象后的实相",
         "fiveSteps": ["步骤1", "步骤2", "步骤3", "步骤4", "步骤5"],
-        "actionAnchor": "一个物理动作锚点",
-        "recommendedBookTitle": "从列表中选一本书名",
-        "recommendedMusicTitle": "从列表中选一个音乐名"
+        "actionAnchor": "物理世界的一个校准动作",
+        "recommendedBookTitle": "书名",
+        "recommendedMusicTitle": "音乐名"
       }`;
 
       const response = await model.generateContent(prompt);
@@ -131,11 +124,9 @@ const App: React.FC = () => {
       const data = JSON.parse(cleanText) as CalibrationResult;
 
       setResult(data);
-      setHistory(prev => [{ id: Date.now().toString(), timestamp: Date.now(), input, result: data }, ...prev].slice(0, 10));
       setInput('');
     } catch (err: any) {
-      console.error(err);
-      setError("核心接入失败：" + (err.message || "请求异常"));
+      setError("频率接入失败，请重试");
     } finally {
       setLoading(false);
     }
@@ -155,21 +146,32 @@ const App: React.FC = () => {
     }
   };
 
-  const matchedBook = result ? BOOKS_DATA.find(b => b.title.includes(result.recommendedBookTitle)) || BOOKS_DATA[0] : null;
-  const matchedMusic = result ? MUSIC_DATA.find(m => m.title.includes(result.recommendedMusicTitle)) || MUSIC_DATA[0] : null;
+  // 增强匹配算法：忽略书名的《》括号进行模糊匹配
+  const findBook = (title: string) => {
+    const cleanTitle = title.replace(/《|》/g, '');
+    return BOOKS_DATA.find(b => b.title.includes(cleanTitle) || cleanTitle.includes(b.title.replace(/《|》/g, ''))) || BOOKS_DATA[0];
+  };
+
+  const findMusic = (title: string) => {
+    return MUSIC_DATA.find(m => m.title === title || title.includes(m.title)) || MUSIC_DATA[0];
+  };
+
+  const matchedBook = result ? findBook(result.recommendedBookTitle) : null;
+  const matchedMusic = result ? findMusic(result.recommendedMusicTitle) : null;
 
   return (
-    <div className="relative min-h-screen flex flex-col z-10 font-light text-white overflow-x-hidden">
+    <div className="relative min-h-screen flex flex-col z-10 font-light text-white overflow-hidden">
       <StarBackground />
       <audio ref={bgmRef} src={BGM_URL} loop />
       <audio ref={depotAudioRef} onEnded={() => setDepotPlayingTitle(null)} />
 
+      {/* 顶部控制栏 */}
       <button 
         onClick={() => { setIsBgmPlaying(!isBgmPlaying); setDepotPlayingTitle(null); depotAudioRef.current?.pause(); }}
         className="fixed top-6 right-6 z-50 p-4 rounded-full bg-white/5 backdrop-blur-2xl border border-white/10 opacity-60 hover:opacity-100 transition-all"
       >
         <div className="text-cyan-400 w-6 h-6">
-          {isBgmPlaying ? (
+          {isBgmPlaying || depotPlayingTitle ? (
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="animate-pulse"><path d="M11 5L6 9H2v6h4l5 4V5zM19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07" /></svg>
           ) : (
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 5L6 9H2v6h4l5 4V5zM23 9l-6 6M17 9l6 6" /></svg>
@@ -184,7 +186,7 @@ const App: React.FC = () => {
         </header>
 
         <main className="w-full">
-          <div className="glass-panel rounded-[2.5rem] p-6 md:p-14 min-h-[480px] flex flex-col justify-center relative shadow-2xl overflow-hidden">
+          <div className="glass-panel rounded-[2.5rem] p-6 md:p-14 min-h-[520px] flex flex-col justify-center relative shadow-2xl overflow-hidden">
             
             {!result && !loading && (
               <div className="space-y-10 animate-fadeIn">
@@ -201,19 +203,26 @@ const App: React.FC = () => {
                 >
                   收回力量
                 </button>
-                {error && <p className="text-red-400 text-center text-sm mt-4">{error}</p>}
+                {error && <p className="text-red-400 text-center text-sm">{error}</p>}
               </div>
             )}
 
             {loading && (
-              <div className="flex flex-col items-center py-20 animate-pulse">
-                <div className="w-16 h-16 border-4 border-t-cyan-400 border-white/10 rounded-full animate-spin mb-6" />
-                <p className="tracking-[0.5em] text-cyan-200 uppercase">解析全息图景...</p>
+              <div className="flex flex-col items-center justify-center py-20 space-y-10">
+                <div className="relative w-32 h-32">
+                  <div className="absolute inset-0 border border-cyan-500/10 rounded-full scale-150 animate-pulse"></div>
+                  <div className="absolute inset-0 border-[3px] border-cyan-500/20 rounded-full"></div>
+                  <div className="absolute inset-0 border-[3px] border-t-white rounded-full animate-spin"></div>
+                  <div className="absolute inset-0 flex items-center justify-center text-cyan-400">
+                     <svg className="w-12 h-12 animate-spin-slow" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m12.728 0l-.707-.707M6.343 6.343l-.707-.707" /></svg>
+                  </div>
+                </div>
+                <p className="tracking-[0.5em] text-cyan-200 uppercase animate-pulse">正在剥离全息投影...</p>
               </div>
             )}
 
             {result && (
-              <div className="animate-fadeIn space-y-10 py-4 overflow-y-auto max-h-[70vh] no-scrollbar">
+              <div className="animate-fadeIn space-y-10 py-4 overflow-y-auto max-h-[70vh] no-scrollbar px-2">
                 <section className="border-l-2 border-cyan-400/80 pl-8">
                   <h3 className="text-cyan-400 text-[10px] font-bold tracking-[0.3em] uppercase">【频率扫描】</h3>
                   <p className="text-2xl font-light mt-2 leading-snug">{result.frequencyScan}</p>
@@ -224,61 +233,119 @@ const App: React.FC = () => {
                   <p className="text-lg italic opacity-90 mt-2 leading-relaxed">{result.illusionStripping}</p>
                 </section>
 
-                <section className="space-y-4">
-                  <h3 className="text-yellow-400 text-[10px] font-bold tracking-[0.3em] uppercase ml-8">【收回力量五部曲】</h3>
-                  {result.fiveSteps.map((step, i) => (
-                    <div key={i} className="bg-white/5 p-6 rounded-2xl border border-white/5 flex items-start gap-4 hover:bg-white/10 transition-all">
-                      <span className="text-cyan-400 font-bold">{i+1}</span>
-                      <p className="font-light leading-relaxed">{step}</p>
-                    </div>
-                  ))}
-                </section>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-10 border-t border-white/10">
-                  <div className="bg-black/30 p-5 rounded-3xl border border-white/10">
-                    <h4 className="text-pink-300 text-[9px] uppercase tracking-widest mb-2 font-bold">意识指引</h4>
-                    <p className="text-lg">{matchedBook?.title}</p>
-                    <p className="text-[10px] opacity-40 italic">{matchedBook?.author}</p>
+                {/* 推荐补给区 */}
+                <div className="pt-10 border-t border-white/10">
+                  <div className="flex justify-between items-center mb-6">
+                    <h3 className="text-white/30 text-[10px] font-bold tracking-[0.5em] uppercase">校准补给</h3>
+                    <button onClick={() => setIsDepotOpen(true)} className="text-cyan-400/60 hover:text-cyan-400 text-[10px] tracking-widest uppercase transition-all">
+                      量子资源库 (查看更多) →
+                    </button>
                   </div>
-                  <div 
-                    onClick={() => matchedMusic && handleMusicToggle(matchedMusic)}
-                    className="bg-black/30 p-5 rounded-3xl border border-white/10 cursor-pointer hover:bg-white/5 transition-all"
-                  >
-                    <h4 className="text-cyan-300 text-[9px] uppercase tracking-widest mb-2 font-bold">频率共鸣</h4>
-                    <p className="text-lg">{matchedMusic?.title}</p>
-                    <p className="text-[10px] opacity-40 uppercase">{matchedMusic?.type}</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="bg-white/5 p-6 rounded-3xl border border-white/10 hover:bg-white/10 transition-all">
+                      <h4 className="text-pink-300 text-[9px] uppercase tracking-widest mb-2 font-bold">意识指引</h4>
+                      <p className="text-lg">{matchedBook?.title}</p>
+                      <p className="text-[10px] opacity-40 italic">{matchedBook?.author}</p>
+                    </div>
+                    <div 
+                      onClick={() => matchedMusic && handleMusicToggle(matchedMusic)}
+                      className="bg-white/5 p-6 rounded-3xl border border-white/10 cursor-pointer hover:bg-white/10 transition-all flex justify-between items-center group"
+                    >
+                      <div>
+                        <h4 className="text-cyan-300 text-[9px] uppercase tracking-widest mb-2 font-bold">频率共鸣</h4>
+                        <p className="text-lg">{matchedMusic?.title}</p>
+                        <p className="text-[10px] opacity-40 uppercase">{matchedMusic?.type}</p>
+                      </div>
+                      <div className="text-cyan-400">
+                        {depotPlayingTitle === matchedMusic?.title ? (
+                          <div className="w-2 h-2 bg-cyan-400 rounded-full animate-ping" />
+                        ) : (
+                          <svg className="w-8 h-8 opacity-20 group-hover:opacity-100" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                <button 
-                  onClick={() => setResult(null)}
-                  className="w-full text-center text-white/20 text-[10px] tracking-[1em] py-10 uppercase hover:text-white transition-all"
-                >
+                <button onClick={() => setResult(null)} className="w-full text-center text-white/20 text-[10px] tracking-[1em] py-10 uppercase hover:text-white transition-all">
                   — 返回虚空 —
                 </button>
               </div>
             )}
           </div>
-
-          {history.length > 0 && (
-            <div className="mt-12 flex justify-center gap-4 overflow-x-auto pb-4 no-scrollbar">
-              {history.map(item => (
-                <button 
-                  key={item.id} 
-                  onClick={() => setResult(item.result)}
-                  className="bg-white/5 px-4 py-2 rounded-full border border-white/10 text-[10px] opacity-40 hover:opacity-100 transition-all whitespace-nowrap"
-                >
-                  ARCHIVE #{item.id.slice(-4)}
-                </button>
-              ))}
-            </div>
-          )}
         </main>
       </div>
+
+      {/* 量子资源库 (弹出层) */}
+      {isDepotOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-10 animate-fadeIn">
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-2xl" onClick={() => setIsDepotOpen(false)} />
+          <div className="relative w-full max-w-5xl max-h-[85vh] bg-white/[0.02] border border-white/10 rounded-[3rem] p-8 md:p-16 overflow-y-auto no-scrollbar shadow-2xl">
+            <div className="flex justify-between items-center mb-16">
+              <div>
+                <h2 className="text-3xl font-extralight tracking-[0.4em] uppercase">量子资源库</h2>
+                <p className="text-cyan-400/40 text-[10px] tracking-widest mt-2 uppercase">Manual Frequency Selection</p>
+              </div>
+              <button onClick={() => setIsDepotOpen(false)} className="text-white/20 hover:text-white text-4xl font-thin transition-colors">×</button>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
+              {/* 书籍列 */}
+              <section className="space-y-8">
+                <h3 className="text-pink-300 text-[10px] font-bold tracking-[0.5em] uppercase border-b border-pink-500/20 pb-4">意识典籍 DEPOT</h3>
+                <div className="grid grid-cols-1 gap-4">
+                  {BOOKS_DATA.map((book, i) => (
+                    <div key={i} className="p-6 bg-white/5 rounded-2xl border border-white/5 hover:bg-pink-500/10 transition-all group">
+                      <p className="text-xl font-light group-hover:text-pink-200 transition-colors">{book.title}</p>
+                      <p className="text-[10px] text-white/30 mb-3 uppercase tracking-widest">{book.author}</p>
+                      <p className="text-xs text-white/50 leading-relaxed font-light">{book.desc}</p>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              {/* 音乐列 */}
+              <section className="space-y-8">
+                <h3 className="text-cyan-300 text-[10px] font-bold tracking-[0.5em] uppercase border-b border-cyan-500/20 pb-4">场域频率 DEPOT</h3>
+                <div className="grid grid-cols-1 gap-4">
+                  {MUSIC_DATA.map((music, i) => (
+                    <div 
+                      key={i} 
+                      onClick={() => handleMusicToggle(music)}
+                      className={`p-6 rounded-2xl border transition-all cursor-pointer flex justify-between items-center ${depotPlayingTitle === music.title ? 'bg-cyan-500/20 border-cyan-500/50' : 'bg-white/5 border-white/5 hover:bg-cyan-500/10'}`}
+                    >
+                      <div>
+                        <p className="text-xl font-light">{music.title}</p>
+                        <p className="text-[10px] text-white/30 uppercase tracking-widest mt-1">{music.type}</p>
+                      </div>
+                      <div className="text-cyan-400">
+                        {depotPlayingTitle === music.title ? (
+                           <svg className="w-8 h-8 animate-pulse" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+                        ) : (
+                          <svg className="w-8 h-8 opacity-20" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            </div>
+          </div>
+        </div>
+      )}
 
       <footer className="py-10 text-[10px] text-white/10 tracking-[1em] text-center uppercase">
         © Mirror Logic • Quantum Consciousness
       </footer>
+
+      <style dangerouslySetInnerHTML={{ __html: `
+        @keyframes spin-slow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .animate-spin-slow { animation: spin-slow 12s linear infinite; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fadeIn { animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+      `}} />
     </div>
   );
 };
